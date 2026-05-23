@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼音 Quiz ⭐</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Nunito', 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(160deg, #5B86E5 0%, #9B59B6 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 480px;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .screen.active { display: flex; }
+
+        /* ── WELCOME ── */
+        .welcome-mascot { font-size: 5rem; animation: float 3s ease-in-out infinite; }
+        .welcome-title {
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            font-weight: 900;
+            color: white;
+            text-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .welcome-sub {
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            font-weight: 700;
+        }
+
+        /* ── CARD ── */
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 28px 22px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        /* ── PROGRESS ── */
+        .progress-row {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            color: white;
+            font-weight: 800;
+            font-size: 1rem;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 6px;
+            transition: width 0.4s ease;
+        }
+
+        /* ── QUESTION ── */
+        .q-prompt {
+            font-size: 1rem;
+            color: #888;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .q-main {
+            color: #222;
+            font-weight: 900;
+            line-height: 1.15;
+            animation: popIn 0.35s ease-out;
+        }
+        .q-main.is-char  { font-size: clamp(3.5rem, 15vw, 5.5rem); }
+        .q-main.is-pinyin { font-size: clamp(1.8rem, 6vw, 2.6rem); color: #5B86E5; }
+        .q-meaning {
+            margin-top: 8px;
+            font-size: 1rem;
+            color: #aaa;
+            font-style: italic;
+        }
+
+        /* ── OPTIONS ── */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+        .opt {
+            background: white;
+            border: 3px solid #e0e0e0;
+            border-radius: 16px;
+            padding: 14px 8px;
+            font-family: inherit;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.1s, border-color 0.15s, background 0.15s, opacity 0.2s;
+            color: #333;
+            min-height: 68px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+        }
+        .opt:hover:not(:disabled) {
+            transform: scale(1.04);
+            border-color: #5B86E5;
+        }
+        .opt:active:not(:disabled) { transform: scale(0.97); }
+        .opt.is-char-opt   { font-size: clamp(1.5rem, 6vw, 2.2rem); }
+        .opt.is-pinyin-opt { font-size: clamp(0.9rem, 3vw, 1.15rem); text-align: center; }
+        .opt.correct { background: #2ecc71; border-color: #27ae60; color: white; transform: scale(1.06); }
+        .opt.wrong   { background: #e74c3c; border-color: #c0392b; color: white; animation: shake 0.4s ease-out; }
+        .opt.dimmed  { opacity: 0.35; }
+
+        /* ── FEEDBACK ── */
+        .feedback {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-weight: 800;
+            font-size: 1.05rem;
+            text-align: center;
+            display: none;
+        }
+        .feedback.ok  { background: #d4edda; color: #155724; display: block; }
+        .feedback.err { background: #f8d7da; color: #721c24; display: block; }
+
+        /* ── BUTTONS ── */
+        .btn {
+            border: none;
+            border-radius: 18px;
+            font-family: inherit;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 7px 0 rgba(0,0,0,0.2); }
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+
+        .btn-profile {
+            width: 100%;
+            max-width: 320px;
+            color: white;
+            font-size: 1.5rem;
+            padding: 18px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .profile-age {
+            font-size: 0.85rem;
+            font-weight: 700;
+            opacity: 0.85;
+        }
+        .profile-best {
+            font-size: 0.8rem;
+            font-weight: 800;
+            margin-top: 4px;
+            padding: 2px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.25);
+        }
+        .btn-ella    { background: #FF6FB5; }
+        .btn-elliott { background: #4ECDC4; }
+        .btn-next {
+            background: #4ECDC4;
+            color: white;
+            font-size: 1.15rem;
+            padding: 15px 0;
+            width: 100%;
+        }
+        .btn-again {
+            background: #FFD700;
+            color: #333;
+            font-size: 1.25rem;
+            padding: 17px 44px;
+        }
+
+        /* ── RESULTS ── */
+        .res-emoji { font-size: 4.5rem; }
+        .res-score { font-size: 4.5rem; font-weight: 900; color: #333; }
+        .res-stars { font-size: 2.2rem; margin: 4px 0; }
+        .res-msg   { font-size: 1.15rem; font-weight: 700; color: #555; text-align: center; }
+        .res-best  { margin-top: 10px; font-size: 1rem; font-weight: 800; color: #888; }
+        .res-best.new-best { color: #e67e22; }
+
+        /* ── CONFETTI ── */
+        #confetti-wrap {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 999;
+        }
+        .cp {
+            position: absolute;
+            border-radius: 2px;
+            animation: fall linear forwards;
+        }
+
+        /* ── KEYFRAMES ── */
+        @keyframes float {
+            0%,100% { transform: translateY(0); }
+            50%      { transform: translateY(-14px); }
+        }
+        @keyframes popIn {
+            0%   { transform: scale(0.4); opacity: 0; }
+            70%  { transform: scale(1.08); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20%     { transform: translateX(-7px); }
+            40%     { transform: translateX(7px); }
+            60%     { transform: translateX(-7px); }
+            80%     { transform: translateX(7px); }
+        }
+        @keyframes fall {
+            0%   { transform: translateY(-80px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+<div id="confetti-wrap"></div>
+
+<!-- WELCOME -->
+<div id="s-welcome" class="screen active">
+    <div class="welcome-mascot">🐼</div>
+    <div class="welcome-title">拼音 Quiz!</div>
+    <div class="welcome-sub">Who's playing today? 🌟</div>
+    <button class="btn btn-profile btn-ella" onclick="startQuiz('ella')">
+        🦄 Ella<span class="profile-age">6 years · easy</span><span class="profile-best" id="best-ella"></span>
+    </button>
+    <button class="btn btn-profile btn-elliott" onclick="startQuiz('elliott')">
+        🚀 Elliott<span class="profile-age">8 years · harder</span><span class="profile-best" id="best-elliott"></span>
+    </button>
+</div>
+
+<!-- QUIZ -->
+<div id="s-quiz" class="screen">
+    <div class="progress-row">
+        <span id="q-label">Question 1 / 10</span>
+        <span id="score-label">⭐ 0</span>
+    </div>
+    <div class="progress-bar">
+        <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+    <div class="card" id="q-card">
+        <div class="q-prompt" id="q-prompt"></div>
+        <div class="q-main"  id="q-main"></div>
+    </div>
+    <div class="options-grid" id="opts"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn btn-next" id="btn-next" onclick="nextQ()" style="display:none">Next →</button>
+</div>
+
+<!-- RESULTS -->
+<div id="s-results" class="screen">
+    <div class="res-emoji" id="r-emoji">🎉</div>
+    <div class="card">
+        <div class="res-score" id="r-score">8/10</div>
+        <div class="res-stars" id="r-stars">⭐⭐⭐⭐☆</div>
+        <div class="res-msg"   id="r-msg">Great job!</div>
+        <div class="res-best"  id="r-best"></div>
+    </div>
+    <button class="btn btn-again" onclick="goHome()">Play Again! 🎮</button>
+</div>
+
+<script>
+// ── VOCABULARY ──────────────────────────────────────────────────────────────
+// level 1 = easy (single syllable, very common) → Ella (6)
+// level 2 = harder (extra single chars + two-char words) → Elliott (8)
+const vocab = [
+    // Numbers
+    { char:'一', pinyin:'yī',       meaning:'one',          level:1 },
+    { char:'二', pinyin:'èr',       meaning:'two',          level:1 },
+    { char:'三', pinyin:'sān',      meaning:'three',        level:1 },
+    { char:'四', pinyin:'sì',       meaning:'four',         level:1 },
+    { char:'五', pinyin:'wǔ',       meaning:'five',         level:1 },
+    { char:'六', pinyin:'liù',      meaning:'six',          level:1 },
+    { char:'七', pinyin:'qī',       meaning:'seven',        level:1 },
+    { char:'八', pinyin:'bā',       meaning:'eight',        level:1 },
+    { char:'九', pinyin:'jiǔ',      meaning:'nine',         level:1 },
+    { char:'十', pinyin:'shí',      meaning:'ten',          level:1 },
+    // Pronouns
+    { char:'你', pinyin:'nǐ',       meaning:'you',          level:1 },
+    { char:'我', pinyin:'wǒ',       meaning:'I / me',       level:1 },
+    { char:'他', pinyin:'tā',       meaning:'he',           level:1 },
+    { char:'她', pinyin:'tā',       meaning:'she',          level:1 },
+    // Adjectives
+    { char:'好', pinyin:'hǎo',      meaning:'good',         level:1 },
+    { char:'大', pinyin:'dà',       meaning:'big',          level:1 },
+    { char:'小', pinyin:'xiǎo',     meaning:'small',        level:1 },
+    { char:'多', pinyin:'duō',      meaning:'many',         level:1 },
+    { char:'少', pinyin:'shǎo',     meaning:'few',          level:1 },
+    { char:'热', pinyin:'rè',       meaning:'hot',          level:1 },
+    { char:'冷', pinyin:'lěng',     meaning:'cold',         level:1 },
+    { char:'新', pinyin:'xīn',      meaning:'new',          level:2 },
+    // Verbs
+    { char:'吃', pinyin:'chī',      meaning:'eat',          level:1 },
+    { char:'喝', pinyin:'hē',       meaning:'drink',        level:1 },
+    { char:'来', pinyin:'lái',      meaning:'come',         level:1 },
+    { char:'去', pinyin:'qù',       meaning:'go',           level:1 },
+    { char:'看', pinyin:'kàn',      meaning:'look / watch', level:1 },
+    { char:'听', pinyin:'tīng',     meaning:'listen',       level:1 },
+    { char:'坐', pinyin:'zuò',      meaning:'sit',          level:1 },
+    { char:'说', pinyin:'shuō',     meaning:'speak',        level:2 },
+    { char:'读', pinyin:'dú',       meaning:'read aloud',   level:2 },
+    { char:'写', pinyin:'xiě',      meaning:'write',        level:2 },
+    { char:'买', pinyin:'mǎi',      meaning:'buy',          level:2 },
+    { char:'住', pinyin:'zhù',      meaning:'live',         level:2 },
+    { char:'叫', pinyin:'jiào',     meaning:'be called',    level:2 },
+    { char:'有', pinyin:'yǒu',      meaning:'have',         level:2 },
+    { char:'是', pinyin:'shì',      meaning:'to be',        level:2 },
+    // Single-char nouns
+    { char:'人', pinyin:'rén',      meaning:'person',       level:1 },
+    { char:'书', pinyin:'shū',      meaning:'book',         level:1 },
+    { char:'水', pinyin:'shuǐ',     meaning:'water',        level:1 },
+    { char:'茶', pinyin:'chá',      meaning:'tea',          level:1 },
+    { char:'猫', pinyin:'māo',      meaning:'cat',          level:1 },
+    { char:'狗', pinyin:'gǒu',      meaning:'dog',          level:1 },
+    { char:'家', pinyin:'jiā',      meaning:'home',         level:1 },
+    { char:'月', pinyin:'yuè',      meaning:'month',        level:1 },
+    { char:'日', pinyin:'rì',       meaning:'day',          level:1 },
+    { char:'鱼', pinyin:'yú',       meaning:'fish',         level:1 },
+    { char:'花', pinyin:'huā',      meaning:'flower',       level:1 },
+    { char:'钱', pinyin:'qián',     meaning:'money',        level:2 },
+    { char:'字', pinyin:'zì',       meaning:'character',    level:2 },
+    { char:'年', pinyin:'nián',     meaning:'year',         level:2 },
+    // Family + greetings (very common two-char words)
+    { char:'你好',  pinyin:'nǐ hǎo',    meaning:'hello',     level:1 },
+    { char:'谢谢',  pinyin:'xièxie',    meaning:'thank you', level:1 },
+    { char:'再见',  pinyin:'zàijiàn',   meaning:'goodbye',   level:1 },
+    { char:'妈妈',  pinyin:'māma',      meaning:'mom',       level:1 },
+    { char:'爸爸',  pinyin:'bàba',      meaning:'dad',       level:1 },
+    // Harder two-char compounds
+    { char:'老师',  pinyin:'lǎoshī',    meaning:'teacher',   level:2 },
+    { char:'学生',  pinyin:'xuésheng',  meaning:'student',   level:2 },
+    { char:'朋友',  pinyin:'péngyou',   meaning:'friend',    level:2 },
+    { char:'苹果',  pinyin:'píngguǒ',   meaning:'apple',     level:2 },
+    { char:'米饭',  pinyin:'mǐfàn',     meaning:'rice',      level:2 },
+    { char:'今天',  pinyin:'jīntiān',   meaning:'today',     level:2 },
+    { char:'明天',  pinyin:'míngtiān',  meaning:'tomorrow',  level:2 },
+    { char:'昨天',  pinyin:'zuótiān',   meaning:'yesterday', level:2 },
+    { char:'高兴',  pinyin:'gāoxìng',   meaning:'happy',     level:2 },
+    { char:'漂亮',  pinyin:'piàoliang', meaning:'beautiful', level:2 },
+    { char:'电话',  pinyin:'diànhuà',   meaning:'phone',     level:2 },
+    { char:'学校',  pinyin:'xuéxiào',   meaning:'school',    level:2 },
+    { char:'中国',  pinyin:'Zhōngguó',  meaning:'China',     level:2 },
+    { char:'天气',  pinyin:'tiānqì',    meaning:'weather',   level:2 },
+    { char:'工作',  pinyin:'gōngzuò',   meaning:'work',      level:2 },
+];
+
+// ── PROFILES ──────────────────────────────────────────────────────────────────
+const profiles = {
+    ella:    { name:'Ella',    emoji:'🦄', maxLevel:1, questions:6,  choices:4 },
+    elliott: { name:'Elliott', emoji:'🚀', maxLevel:2, questions:10, choices:4 },
+};
+
+// ── STATE ───────────────────────────────────────────────────────────────────
+let questions = [], curQ = 0, score = 0, totalQ = 10, profile = null, profileKey = null;
+
+// ── BEST SCORES (persisted) ───────────────────────────────────────────────────
+function getBest(key) {
+    try { const v = localStorage.getItem('pinyin-best-' + key); return v === null ? null : +v; }
+    catch (_) { return null; }
+}
+function setBest(key, val) {
+    try { localStorage.setItem('pinyin-best-' + key, val); } catch (_) {}
+}
+function renderBestScores() {
+    for (const key in profiles) {
+        const best = getBest(key);
+        const el   = document.getElementById('best-' + key);
+        el.textContent = best === null
+            ? '🏅 Best —'
+            : `🏅 Best ${best}/${profiles[key].questions}`;
+    }
+}
+
+// ── UTILS ────────────────────────────────────────────────────────────────────
+function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+// ── QUESTION GENERATION ───────────────────────────────────────────────────────
+function buildQuestions(p) {
+    const pool = vocab.filter(v => v.level <= p.maxLevel);
+
+    // pinyin → frequency within this pool (to detect ambiguous ones like 他/她 both tā)
+    const freq = {};
+    pool.forEach(v => freq[v.pinyin] = (freq[v.pinyin] || 0) + 1);
+
+    const picked = shuffle(pool).slice(0, p.questions);
+    return picked.map(correct => {
+        // if pinyin is shared by multiple chars, only char→pinyin is safe
+        const type = freq[correct.pinyin] > 1
+            ? 'ctp'   // char-to-pinyin
+            : (Math.random() < 0.5 ? 'ctp' : 'ptc');  // pinyin-to-char
+
+        const wrongPool = type === 'ctp'
+            ? pool.filter(v => v.pinyin !== correct.pinyin)
+            : pool.filter(v => v.char !== correct.char && v.pinyin !== correct.pinyin);
+
+        const wrongs  = shuffle(wrongPool).slice(0, p.choices - 1);
+        const options = shuffle([correct, ...wrongs]);
+        return { type, correct, options };
+    });
+}
+
+// ── SCREENS ──────────────────────────────────────────────────────────────────
+function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+// ── QUIZ FLOW ─────────────────────────────────────────────────────────────────
+function startQuiz(key) {
+    profileKey = key;
+    profile = profiles[key];
+    totalQ  = profile.questions;
+    questions = buildQuestions(profile);
+    curQ = 0; score = 0;
+    show('s-quiz');
+    renderQ();
+}
+
+function renderQ() {
+    const q = questions[curQ];
+
+    // progress
+    document.getElementById('q-label').textContent    = `Question ${curQ + 1} / ${totalQ}`;
+    document.getElementById('score-label').textContent = `${profile.emoji} ${profile.name}  ⭐ ${score}`;
+    document.getElementById('prog-fill').style.width  = `${(curQ / totalQ) * 100}%`;
+
+    // question card
+    const mainEl = document.getElementById('q-main');
+    if (q.type === 'ctp') {
+        document.getElementById('q-prompt').textContent  = 'What is the pinyin for...';
+        mainEl.textContent  = q.correct.char;
+        mainEl.className    = 'q-main is-char';
+    } else {
+        document.getElementById('q-prompt').textContent  = 'Which character is...';
+        mainEl.textContent  = q.correct.pinyin;
+        mainEl.className    = 'q-main is-pinyin';
+    }
+
+    // reset card animation
+    mainEl.style.animation = 'none';
+    mainEl.offsetHeight;
+    mainEl.style.animation = '';
+
+    // feedback + next button
+    const fb = document.getElementById('feedback');
+    fb.className    = 'feedback';
+    fb.textContent  = '';
+    document.getElementById('btn-next').style.display = 'none';
+
+    // option buttons
+    const grid = document.getElementById('opts');
+    grid.innerHTML = '';
+    q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className  = q.type === 'ctp' ? 'opt is-pinyin-opt' : 'opt is-char-opt';
+        btn.textContent = q.type === 'ctp' ? opt.pinyin : opt.char;
+        btn.dataset.char = opt.char;
+        btn.onclick = () => answer(btn, opt, q);
+        grid.appendChild(btn);
+    });
+}
+
+function answer(clicked, chosen, q) {
+    document.querySelectorAll('.opt').forEach(b => b.disabled = true);
+    const correct = chosen.char === q.correct.char;
+
+    if (correct) {
+        clicked.classList.add('correct');
+        score++;
+        document.getElementById('score-label').textContent = `${profile.emoji} ${profile.name}  ⭐ ${score}`;
+        document.querySelectorAll('.opt').forEach(b => {
+            if (b !== clicked) b.classList.add('dimmed');
+        });
+        setFeedback(true, q.correct);
+        playSound(true);
+    } else {
+        clicked.classList.add('wrong');
+        document.querySelectorAll('.opt').forEach(b => {
+            if (b !== clicked) {
+                b.dataset.char === q.correct.char
+                    ? b.classList.add('correct')
+                    : b.classList.add('dimmed');
+            }
+        });
+        setFeedback(false, q.correct);
+        playSound(false);
+    }
+
+    document.getElementById('btn-next').style.display = 'block';
+}
+
+function setFeedback(ok, item) {
+    const fb = document.getElementById('feedback');
+    if (ok) {
+        fb.className   = 'feedback ok';
+        fb.textContent = `✅ Correct!  ${item.char} = ${item.pinyin}`;
+    } else {
+        fb.className   = 'feedback err';
+        fb.textContent = `❌ It's  ${item.char} = ${item.pinyin}  (${item.meaning})`;
+    }
+}
+
+function nextQ() {
+    curQ++;
+    curQ < totalQ ? renderQ() : showResults();
+}
+
+// ── RESULTS ──────────────────────────────────────────────────────────────────
+function showResults() {
+    show('s-results');
+    document.getElementById('prog-fill').style.width = '100%';
+
+    const pct = score / totalQ;
+    const name = profile.name;
+    let stars, msg, emoji;
+    if (pct === 1)      { stars = '⭐⭐⭐⭐⭐'; msg = `🎊 PERFECT! ${name} is a Pinyin Master! 🎊`; emoji = '🏆'; confetti(); }
+    else if (pct >= .8) { stars = '⭐⭐⭐⭐☆'; msg = `Amazing, ${name}! Almost perfect! 🌟`;        emoji = '🎉'; confetti(); }
+    else if (pct >= .6) { stars = '⭐⭐⭐☆☆'; msg = `Great work, ${name}! Keep it up! 💪`;          emoji = '😊'; }
+    else if (pct >= .4) { stars = '⭐⭐☆☆☆'; msg = `Good try, ${name}! You're learning! 📚`;       emoji = '🙂'; }
+    else                { stars = '⭐☆☆☆☆'; msg = `Keep going, ${name}! Practice makes perfect! 🌱`; emoji = '🐼'; }
+
+    document.getElementById('r-emoji').textContent = emoji;
+    document.getElementById('r-score').textContent = `${score}/${totalQ}`;
+    document.getElementById('r-stars').textContent = stars;
+    document.getElementById('r-msg').textContent   = msg;
+
+    // best score
+    const prevBest = getBest(profileKey);
+    const bestEl   = document.getElementById('r-best');
+    if (prevBest === null || score > prevBest) {
+        setBest(profileKey, score);
+        bestEl.className   = 'res-best new-best';
+        bestEl.textContent = `🏅 New best score for ${name}!`;
+        if (score > 0) confetti();
+    } else {
+        bestEl.className   = 'res-best';
+        bestEl.textContent = `Best so far: ${prevBest}/${totalQ}`;
+    }
+    renderBestScores();
+}
+
+function goHome() {
+    document.getElementById('confetti-wrap').innerHTML = '';
+    show('s-welcome');
+}
+
+// ── CONFETTI ──────────────────────────────────────────────────────────────────
+function confetti() {
+    const wrap   = document.getElementById('confetti-wrap');
+    const colors = ['#FF6B6B','#4ECDC4','#FFE66D','#A29BFE','#FF8E53','#2ECC71','#FFA8CC'];
+    for (let i = 0; i < 90; i++) {
+        const el = document.createElement('div');
+        el.className = 'cp';
+        const size = Math.random() * 10 + 6;
+        el.style.cssText = `
+            left: ${Math.random() * 100}vw;
+            top: 0;
+            width: ${size}px;
+            height: ${size}px;
+            background: ${colors[i % colors.length]};
+            animation-duration: ${Math.random() * 2 + 2}s;
+            animation-delay: ${Math.random() * 1.5}s;
+        `;
+        wrap.appendChild(el);
+    }
+    setTimeout(() => { wrap.innerHTML = ''; }, 5000);
+}
+
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+function playSound(correct) {
+    try {
+        const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+        if (correct) {
+            [523.25, 659.25, 783.99].forEach((freq, i) => {
+                const osc  = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                const t = ctx.currentTime + i * 0.13;
+                gain.gain.setValueAtTime(0.28, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+                osc.start(t); osc.stop(t + 0.35);
+            });
+        } else {
+            const osc  = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 220;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5);
+        }
+    } catch (_) {}
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+renderBestScores();
+</script>
+</body>
+</html>
