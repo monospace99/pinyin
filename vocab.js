@@ -103,3 +103,6 @@ const vocab = [
     { char:'超市',  pinyin:'chāo shì',  meaning:'supermarket', level:3 },
     { char:'图书馆', pinyin:'tú shū guǎn', meaning:'library',     level:3 },
 ];
+
+// lets the tests load this file in Node; ignored in the browser
+if (typeof module !== 'undefined') module.exports = { vocab };
