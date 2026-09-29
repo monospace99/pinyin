@@ -60,6 +60,7 @@
         .progress-row {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             width: 100%;
             color: white;
             font-weight: 800;
@@ -94,6 +95,7 @@
         }
         .q-main.is-char  { font-size: clamp(3.5rem, 15vw, 5.5rem); }
         .q-main.is-pinyin { font-size: clamp(1.8rem, 6vw, 2.6rem); color: #5B86E5; }
+        .q-main.is-meaning { font-size: clamp(1.6rem, 6vw, 2.3rem); color: #9B59B6; }
         .q-meaning {
             margin-top: 8px;
             font-size: 1rem;
@@ -131,6 +133,8 @@
         .opt:active:not(:disabled) { transform: scale(0.97); }
         .opt.is-char-opt   { font-size: clamp(1.5rem, 6vw, 2.2rem); }
         .opt.is-pinyin-opt { font-size: clamp(0.9rem, 3vw, 1.15rem); text-align: center; }
+        /* odd number of options: last one spans the full row */
+        .opt:last-child:nth-child(odd) { grid-column: span 2; }
         .opt.correct { background: #2ecc71; border-color: #27ae60; color: white; transform: scale(1.06); }
         .opt.wrong   { background: #e74c3c; border-color: #c0392b; color: white; animation: shake 0.4s ease-out; }
         .opt.dimmed  { opacity: 0.35; }
@@ -147,6 +151,21 @@
         }
         .feedback.ok  { background: #d4edda; color: #155724; display: block; }
         .feedback.err { background: #f8d7da; color: #721c24; display: block; }
+        .btn-say {
+            margin-left: 10px;
+            border: none;
+            background: white;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            vertical-align: middle;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            transition: transform 0.1s;
+        }
+        .btn-say:hover  { transform: scale(1.1); }
+        .btn-say:active { transform: scale(0.95); }
 
         /* ── BUTTONS ── */
         .btn {
@@ -161,32 +180,30 @@
         .btn:hover { transform: translateY(-2px); box-shadow: 0 7px 0 rgba(0,0,0,0.2); }
         .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
 
-        .btn-profile {
+        .age-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
             width: 100%;
-            max-width: 320px;
+        }
+        .btn-age {
             color: white;
-            font-size: 1.5rem;
-            padding: 18px 24px;
+            padding: 14px 6px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 2px;
         }
-        .profile-age {
-            font-size: 0.85rem;
-            font-weight: 700;
-            opacity: 0.85;
-        }
-        .profile-best {
-            font-size: 0.8rem;
+        .age-num   { font-size: 2.2rem; font-weight: 900; line-height: 1; }
+        .age-label { font-size: 0.8rem; font-weight: 700; opacity: 0.9; }
+        .age-best {
+            font-size: 0.7rem;
             font-weight: 800;
             margin-top: 4px;
-            padding: 2px 10px;
+            padding: 2px 8px;
             border-radius: 10px;
             background: rgba(255,255,255,0.25);
         }
-        .btn-ella    { background: #FF6FB5; }
-        .btn-elliott { background: #4ECDC4; }
         .btn-next {
             background: #4ECDC4;
             color: white;
@@ -194,6 +211,16 @@
             padding: 15px 0;
             width: 100%;
         }
+        .btn-home {
+            background: rgba(255,255,255,0.25);
+            color: white;
+            font-size: 0.95rem;
+            padding: 8px 14px;
+            border-radius: 14px;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+        }
+        .btn-home:hover  { box-shadow: 0 5px 0 rgba(0,0,0,0.15); }
+        .btn-home:active { box-shadow: 0 1px 0 rgba(0,0,0,0.15); }
         .btn-again {
             background: #FFD700;
             color: #333;
@@ -251,18 +278,14 @@
 <div id="s-welcome" class="screen active">
     <div class="welcome-mascot">🐼</div>
     <div class="welcome-title">拼音 Quiz!</div>
-    <div class="welcome-sub">Who's playing today? 🌟</div>
-    <button class="btn btn-profile btn-ella" onclick="startQuiz('ella')">
-        🦄 Ella<span class="profile-age">6 years · easy</span><span class="profile-best" id="best-ella"></span>
-    </button>
-    <button class="btn btn-profile btn-elliott" onclick="startQuiz('elliott')">
-        🚀 Elliott<span class="profile-age">8 years · harder</span><span class="profile-best" id="best-elliott"></span>
-    </button>
+    <div class="welcome-sub">How old are you? 🌟</div>
+    <div class="age-grid" id="age-grid"></div>
 </div>
 
 <!-- QUIZ -->
 <div id="s-quiz" class="screen">
     <div class="progress-row">
+        <button class="btn btn-home" onclick="goHome()" aria-label="Home">🏠 Home</button>
         <span id="q-label">Question 1 / 10</span>
         <span id="score-label">⭐ 0</span>
     </div>
@@ -272,6 +295,7 @@
     <div class="card" id="q-card">
         <div class="q-prompt" id="q-prompt"></div>
         <div class="q-main"  id="q-main"></div>
+        <div class="q-meaning" id="q-meaning"></div>
     </div>
     <div class="options-grid" id="opts"></div>
     <div class="feedback" id="feedback"></div>
@@ -292,30 +316,43 @@
 
 <script src="vocab.js"></script>
 <script>
-// ── PROFILES ──────────────────────────────────────────────────────────────────
-const profiles = {
-    ella:    { name:'Ella',    emoji:'🦄', maxLevel:1, questions:6,  choices:4 },
-    elliott: { name:'Elliott', emoji:'🚀', maxLevel:2, questions:10, choices:4 },
+// ── AGE SETTINGS ──────────────────────────────────────────────────────────────
+// types: ctp = char→pinyin, ptc = pinyin→char, mtc = meaning→char
+// hint:  show the English meaning under the question
+const ages = {
+    5:  { label:'5',   color:'#FF6FB5', minLevel:1, maxLevel:1, questions:5,  choices:3, types:['ctp','ptc'],       hint:true  },
+    6:  { label:'6',   color:'#FF8E53', minLevel:1, maxLevel:1, questions:6,  choices:4, types:['ctp','ptc'],       hint:true  },
+    7:  { label:'7',   color:'#F1C40F', minLevel:1, maxLevel:2, questions:8,  choices:4, types:['ctp','ptc'],       hint:false },
+    8:  { label:'8',   color:'#4ECDC4', minLevel:1, maxLevel:2, questions:10, choices:4, types:['ctp','ptc'],       hint:false },
+    9:  { label:'9',   color:'#2ECC71', minLevel:2, maxLevel:3, questions:10, choices:4, types:['ctp','ptc','mtc'], hint:false },
+    10: { label:'10+', color:'#3498DB', minLevel:2, maxLevel:3, questions:12, choices:6, types:['ctp','ptc','mtc'], hint:false },
 };
 
 // ── STATE ───────────────────────────────────────────────────────────────────
-let questions = [], curQ = 0, score = 0, totalQ = 10, profile = null, profileKey = null;
+let questions = [], curQ = 0, score = 0, totalQ = 10, profile = null, ageKey = null;
 
 // ── BEST SCORES (persisted) ───────────────────────────────────────────────────
 function getBest(key) {
-    try { const v = localStorage.getItem('pinyin-best-' + key); return v === null ? null : +v; }
+    try { const v = localStorage.getItem('pinyin-best-age-' + key); return v === null ? null : +v; }
     catch (_) { return null; }
 }
 function setBest(key, val) {
-    try { localStorage.setItem('pinyin-best-' + key, val); } catch (_) {}
+    try { localStorage.setItem('pinyin-best-age-' + key, val); } catch (_) {}
 }
-function renderBestScores() {
-    for (const key in profiles) {
+function renderAgeButtons() {
+    const grid = document.getElementById('age-grid');
+    grid.innerHTML = '';
+    for (const key in ages) {
+        const a    = ages[key];
         const best = getBest(key);
-        const el   = document.getElementById('best-' + key);
-        el.textContent = best === null
-            ? '🏅 Best —'
-            : `🏅 Best ${best}/${profiles[key].questions}`;
+        const btn  = document.createElement('button');
+        btn.className = 'btn btn-age';
+        btn.style.background = a.color;
+        btn.onclick = () => startQuiz(key);
+        btn.innerHTML = `<span class="age-num">${a.label}</span>`
+            + `<span class="age-label">years</span>`
+            + `<span class="age-best">🏅 ${best === null ? '—' : `${best}/${a.questions}`}</span>`;
+        grid.appendChild(btn);
     }
 }
 
@@ -331,7 +368,7 @@ function shuffle(arr) {
 
 // ── QUESTION GENERATION ───────────────────────────────────────────────────────
 function buildQuestions(p) {
-    const pool = vocab.filter(v => v.level <= p.maxLevel);
+    const pool = vocab.filter(v => v.level >= p.minLevel && v.level <= p.maxLevel);
 
     // pinyin → frequency within this pool (to detect ambiguous ones like 他/她 both tā)
     const freq = {};
@@ -339,16 +376,22 @@ function buildQuestions(p) {
 
     const picked = shuffle(pool).slice(0, p.questions);
     return picked.map(correct => {
-        // if pinyin is shared by multiple chars, only char→pinyin is safe
-        const type = freq[correct.pinyin] > 1
-            ? 'ctp'   // char-to-pinyin
-            : (Math.random() < 0.5 ? 'ctp' : 'ptc');  // pinyin-to-char
+        // if pinyin is shared by multiple chars, pinyin→char has two right answers
+        let types = p.types;
+        if (freq[correct.pinyin] > 1) types = types.filter(t => t !== 'ptc');
+        const type = types[Math.floor(Math.random() * types.length)];
 
-        const wrongPool = type === 'ctp'
-            ? pool.filter(v => v.pinyin !== correct.pinyin)
-            : pool.filter(v => v.char !== correct.char && v.pinyin !== correct.pinyin);
-
-        const wrongs  = shuffle(wrongPool).slice(0, p.choices - 1);
+        // options are shown as pinyin for ctp, as characters otherwise;
+        // skip wrongs that would look identical to the answer or to each other
+        const seen = new Set([correct.pinyin, correct.char, correct.meaning]);
+        const wrongs = [];
+        for (const v of shuffle(pool)) {
+            if (wrongs.length === p.choices - 1) break;
+            const keys = type === 'ctp' ? [v.pinyin] : [v.char, v.pinyin, v.meaning];
+            if (keys.some(k => seen.has(k))) continue;
+            keys.forEach(k => seen.add(k));
+            wrongs.push(v);
+        }
         const options = shuffle([correct, ...wrongs]);
         return { type, correct, options };
     });
@@ -362,8 +405,8 @@ function show(id) {
 
 // ── QUIZ FLOW ─────────────────────────────────────────────────────────────────
 function startQuiz(key) {
-    profileKey = key;
-    profile = profiles[key];
+    ageKey  = key;
+    profile = ages[key];
     totalQ  = profile.questions;
     questions = buildQuestions(profile);
     curQ = 0; score = 0;
@@ -376,7 +419,7 @@ function renderQ() {
 
     // progress
     document.getElementById('q-label').textContent    = `Question ${curQ + 1} / ${totalQ}`;
-    document.getElementById('score-label').textContent = `${profile.emoji} ${profile.name}  ⭐ ${score}`;
+    document.getElementById('score-label').textContent = `⭐ ${score}`;
     document.getElementById('prog-fill').style.width  = `${(curQ / totalQ) * 100}%`;
 
     // question card
@@ -385,11 +428,17 @@ function renderQ() {
         document.getElementById('q-prompt').textContent  = 'What is the pinyin for...';
         mainEl.textContent  = q.correct.char;
         mainEl.className    = 'q-main is-char';
-    } else {
+    } else if (q.type === 'ptc') {
         document.getElementById('q-prompt').textContent  = 'Which character is...';
         mainEl.textContent  = q.correct.pinyin;
         mainEl.className    = 'q-main is-pinyin';
+    } else {
+        document.getElementById('q-prompt').textContent  = 'Which word means...';
+        mainEl.textContent  = q.correct.meaning;
+        mainEl.className    = 'q-main is-meaning';
     }
+    document.getElementById('q-meaning').textContent =
+        profile.hint && q.type !== 'mtc' ? `(${q.correct.meaning})` : '';
 
     // reset card animation
     mainEl.style.animation = 'none';
@@ -422,7 +471,7 @@ function answer(clicked, chosen, q) {
     if (correct) {
         clicked.classList.add('correct');
         score++;
-        document.getElementById('score-label').textContent = `${profile.emoji} ${profile.name}  ⭐ ${score}`;
+        document.getElementById('score-label').textContent = `⭐ ${score}`;
         document.querySelectorAll('.opt').forEach(b => {
             if (b !== clicked) b.classList.add('dimmed');
         });
@@ -453,9 +502,20 @@ function setFeedback(ok, item) {
         fb.className   = 'feedback err';
         fb.textContent = `❌ It's  ${item.char} = ${item.pinyin}  (${item.meaning})`;
     }
+    if (zhVoice) {
+        const say = document.createElement('button');
+        say.className   = 'btn-say';
+        say.textContent = '🔊';
+        say.setAttribute('aria-label', 'Hear it again');
+        say.onclick = () => speak(item.char);
+        fb.appendChild(say);
+    }
+    // let the chime finish before the word is read out
+    speakTimer = setTimeout(() => speak(item.char), 600);
 }
 
 function nextQ() {
+    stopSpeaking();
     curQ++;
     curQ < totalQ ? renderQ() : showResults();
 }
@@ -466,13 +526,12 @@ function showResults() {
     document.getElementById('prog-fill').style.width = '100%';
 
     const pct = score / totalQ;
-    const name = profile.name;
     let stars, msg, emoji;
-    if (pct === 1)      { stars = '⭐⭐⭐⭐⭐'; msg = `🎊 PERFECT! ${name} is a Pinyin Master! 🎊`; emoji = '🏆'; confetti(); }
-    else if (pct >= .8) { stars = '⭐⭐⭐⭐☆'; msg = `Amazing, ${name}! Almost perfect! 🌟`;        emoji = '🎉'; confetti(); }
-    else if (pct >= .6) { stars = '⭐⭐⭐☆☆'; msg = `Great work, ${name}! Keep it up! 💪`;          emoji = '😊'; }
-    else if (pct >= .4) { stars = '⭐⭐☆☆☆'; msg = `Good try, ${name}! You're learning! 📚`;       emoji = '🙂'; }
-    else                { stars = '⭐☆☆☆☆'; msg = `Keep going, ${name}! Practice makes perfect! 🌱`; emoji = '🐼'; }
+    if (pct === 1)      { stars = '⭐⭐⭐⭐⭐'; msg = `🎊 PERFECT! You're a Pinyin Master! 🎊`;   emoji = '🏆'; confetti(); }
+    else if (pct >= .8) { stars = '⭐⭐⭐⭐☆'; msg = `Amazing! Almost perfect! 🌟`;              emoji = '🎉'; confetti(); }
+    else if (pct >= .6) { stars = '⭐⭐⭐☆☆'; msg = `Great work! Keep it up! 💪`;                emoji = '😊'; }
+    else if (pct >= .4) { stars = '⭐⭐☆☆☆'; msg = `Good try! You're learning! 📚`;             emoji = '🙂'; }
+    else                { stars = '⭐☆☆☆☆'; msg = `Keep going! Practice makes perfect! 🌱`;    emoji = '🐼'; }
 
     document.getElementById('r-emoji').textContent = emoji;
     document.getElementById('r-score').textContent = `${score}/${totalQ}`;
@@ -480,21 +539,22 @@ function showResults() {
     document.getElementById('r-msg').textContent   = msg;
 
     // best score
-    const prevBest = getBest(profileKey);
+    const prevBest = getBest(ageKey);
     const bestEl   = document.getElementById('r-best');
     if (prevBest === null || score > prevBest) {
-        setBest(profileKey, score);
+        setBest(ageKey, score);
         bestEl.className   = 'res-best new-best';
-        bestEl.textContent = `🏅 New best score for ${name}!`;
+        bestEl.textContent = `🏅 New best score for age ${profile.label}!`;
         if (score > 0) confetti();
     } else {
         bestEl.className   = 'res-best';
         bestEl.textContent = `Best so far: ${prevBest}/${totalQ}`;
     }
-    renderBestScores();
+    renderAgeButtons();
 }
 
 function goHome() {
+    stopSpeaking();
     document.getElementById('confetti-wrap').innerHTML = '';
     show('s-welcome');
 }
@@ -554,8 +614,37 @@ function playSound(correct) {
     } catch (_) {}
 }
 
+// ── PRONUNCIATION ─────────────────────────────────────────────────────────────
+// uses the browser's built-in Mandarin voice, if one is installed
+let zhVoice = null, speakTimer = null;
+function canSpeak() { return 'speechSynthesis' in window; }
+function loadVoice() {
+    const voices = speechSynthesis.getVoices();
+    zhVoice = voices.find(v => /^zh[-_]CN/i.test(v.lang))
+           || voices.find(v => /^zh/i.test(v.lang))
+           || null;
+}
+function speak(text) {
+    // without a Chinese voice the browser would mispronounce it with an English one
+    if (!canSpeak() || !zhVoice) return;
+    stopSpeaking();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang  = 'zh-CN';
+    u.voice = zhVoice;
+    u.rate = 0.8;
+    speechSynthesis.speak(u);
+}
+function stopSpeaking() {
+    clearTimeout(speakTimer);
+    if (canSpeak()) speechSynthesis.cancel();
+}
+if (canSpeak()) {
+    loadVoice();
+    speechSynthesis.onvoiceschanged = loadVoice;
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
-renderBestScores();
+renderAgeButtons();
 </script>
 </body>
 </html>
